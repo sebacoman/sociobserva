@@ -1,47 +1,358 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SociObserva</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDTLVsHoYspaZ0wR4RPZaqRC7tU1FouO7k",
-      authDomain: "sociobserva.firebaseapp.com",
-      projectId: "sociobserva",
-      storageBucket: "sociobserva.firebasestorage.app",
-      messagingSenderId: "798978737465",
-      appId: "1:798978737465:web:d5cbd9a6a055de74d014e8"
-    };
-    firebase.initializeApp(firebaseConfig);
-  </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SociObserva - Observación Ciudadana con Perspectiva Sociológica</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
-  <h1>SociObserva</h1>
-  <p>Reportá tu observación sociológica:</p>
-
-  <form id="reportForm">
-    <label>Título:<br><input type="text" id="obs-title" required></label><br><br>
-    <label>Categoría:<br>
-      <select id="obs-category" required>
-        <option value="">Seleccioná</option>
-        <option value="exclusion-social">Exclusión Social</option>
-        <option value="discriminacion-genero">Discriminación de Género</option>
-        <option value="trabajo-informal">Trabajo Informal</option>
-        <option value="hostilidad-urbana">Hostilidad Urbana</option>
-      </select>
-    </label><br><br>
-    <label>Descripción:<br><textarea id="obs-description" required></textarea></label><br><br>
-    <label>Ubicación (texto o coordenadas):<br><input type="text" id="obs-location" required></label><br><br>
-    <button type="submit">Publicar</button>
-  </form>
-
-  <h2>Observaciones:</h2>
-  <ul id="obs-list"></ul>
-
-  <script src="script.js"></script>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <i class="fas fa-binoculars"></i>
+                <h1>SociObserva</h1>
+            </div>
+            
+            <nav aria-label="Navegación principal del sitio">
+                <ul>
+                    <li><a href="#inicio" class="active">Inicio</a></li>
+                    <li><a href="#mapa">Mapa</a></li>
+                    <li><a href="#observaciones">Observaciones</a></li>
+                    <li><a href="#recursos">Recursos</a></li>
+                    <li><a href="#dashboard">Dashboard</a></li>
+                    <li><a href="#proyectos">Proyectos</a></li>
+                </ul>
+            </nav>
+            
+            <div class="user-actions">
+                <button class="btn btn-outline" aria-label="Iniciar sesión"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</button>
+                <button class="btn btn-primary" aria-label="Registrarse"><i class="fas fa-user-plus"></i> Registrarse</button>
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <section class="hero" id="inicio">
+            <h2>Transforma tu mirada, documenta la realidad</h2>
+            <p>Una plataforma colaborativa para la observación ciudadana con perspectiva sociológica. Registra, analiza y comparte fenómenos sociales en tu entorno.</p>
+            <button class="btn btn-accent"><i class="fas fa-plus-circle"></i> Reportar Observación</button>
+        </section>
+        
+        <section class="features">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <div class="feature-content">
+                    <h3>Mapa Colaborativo</h3>
+                    <p>Visualiza fenómenos sociales geolocalizados en un mapa interactivo. Filtra por categorías, fechas o impacto para identificar patrones y zonas críticas.</p>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div class="feature-content">
+                    <h3>Perspectiva Sociológica</h3>
+                    <p>Clasifica tus observaciones utilizando categorías sociológicas con definiciones y contexto teórico para un análisis más profundo de la realidad social.</p>
+                </div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="feature-content">
+                    <h3>Participación Ciudadana</h3>
+                    <p>Contribuye al conocimiento colectivo, refuerza observaciones existentes y participa en proyectos de investigación colaborativa.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="dashboard" id="dashboard">
+            <div class="map-container" id="mapa">
+                <div id="map"></div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Observaciones por Categoría</h3>
+                <canvas id="categoryChart" aria-label="Gráfico de observaciones por categoría"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h3>Tendencias Temporales</h3>
+                <canvas id="trendChart" aria-label="Gráfico de tendencias temporales de observaciones"></canvas>
+            </div>
+        </section>
+        
+        <section class="observations" id="observaciones">
+            <div class="observation-filters">
+                <h3>Filtrar Observaciones</h3>
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label for="category">Categoría</label>
+                        <select id="category" aria-label="Filtrar por categoría">
+                            <option value="">Todas</option>
+                            <option value="exclusion-social">Exclusión Social</option>
+                            <option value="discriminacion-genero">Discriminación de Género</option>
+                            <option value="trabajo-informal">Trabajo Informal</option>
+                            <option value="vivienda-precaria">Vivienda Precaria</option>
+                            <option value="hostilidad-urbana">Hostilidad Urbana</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="location">Ubicación</label>
+                        <select id="location" aria-label="Filtrar por ubicación">
+                            <option value="">Todas</option>
+                            <option value="ciudad-mexico">Ciudad de México</option>
+                            <option value="buenos-aires">Buenos Aires</option>
+                            <option value="bogota">Bogotá</option>
+                            <option value="santiago">Santiago</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="date">Fecha</label>
+                        <select id="date" aria-label="Filtrar por fecha">
+                            <option value="7-dias">Últimos 7 días</option>
+                            <option value="mes">Último mes</option>
+                            <option value="año">Último año</option>
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="impact">Impacto</label>
+                        <select id="impact" aria-label="Filtrar por impacto">
+                            <option value="">Todos</option>
+                            <option value="alto">Alto</option>
+                            <option value="medio">Medio</option>
+                            <option value="bajo">Bajo</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="observation-grid">
+                <div class="observation-card">
+                    <div class="observation-image" style="background-image: url('https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');" alt="Bancos con apoyabrazos que impiden el descanso en una plaza."></div>
+                    <div class="observation-content">
+                        <span class="observation-category">Hostilidad Urbana</span>
+                        <h3 class="observation-title">Bancos con apoyabrazos en plaza central</h3>
+                        <p>Diseño urbano que impide el descanso de personas sin hogar en espacios públicos.</p>
+                        <div class="observation-meta">
+                            <span><i class="fas fa-map-marker-alt" aria-hidden="true"></i> CDMX, México</span>
+                            <span class="impact-high"><i class="fas fa-fire" aria-hidden="true"></i> Alto impacto</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-card">
+                    <div class="observation-image" style="background-image: url('https://images.unsplash.com/photo-1518458028785-8fbcd101ebb9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');" alt="Vendedores ambulantes en la entrada de una estación de metro."></div>
+                    <div class="observation-content">
+                        <span class="observation-category">Trabajo Informal</span>
+                        <h3 class="observation-title">Vendedores ambulantes en estación de metro</h3>
+                        <p>Economía informal como estrategia de supervivencia en contexto de desempleo.</p>
+                        <div class="observation-meta">
+                            <span><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Buenos Aires, Argentina</span>
+                            <span class="impact-medium"><i class="fas fa-fire" aria-hidden="true"></i> Medio impacto</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="observation-card">
+                    <div class="observation-image" style="background-image: url('https://images.unsplash.com/photo-1575425186775-b8de9a427e67?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');" alt="Anuncio publicitario con imágenes sexistas en una parada de autobús."></div>
+                    <div class="observation-content">
+                        <span class="observation-category">Discriminación de Género</span>
+                        <h3 class="observation-title">Publicidad sexista en parada de autobús</h3>
+                        <p>Propaganda que refuerza estereotipos de género y cosificación femenina.</p>
+                        <div class="observation-meta">
+                            <span><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Bogotá, Colombia</span>
+                            <span class="impact-high"><i class="fas fa-fire" aria-hidden="true"></i> Alto impacto</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="report-section">
+            <h2 style="margin-bottom: 1.5rem;">Reportar Nueva Observación</h2>
+            <form id="reportForm"> <div class="report-form">
+                    <div class="form-group">
+                        <label for="obs-title">Título <span style="color:var(--accent);">*</span></label>
+                        <input type="text" id="obs-title" placeholder="Describe brevemente la observación" required aria-required="true">
+                        <span class="error-message" id="error-obs-title">El título es obligatorio.</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="obs-category">Categoría Sociológica <span style="color:var(--accent);">*</span></label>
+                        <select id="obs-category" required aria-required="true">
+                            <option value="">Selecciona una categoría</option>
+                            <option value="exclusion-social">Exclusión Social</option>
+                            <option value="discriminacion-genero">Discriminación de Género</option>
+                            <option value="trabajo-informal">Trabajo Informal</option>
+                            <option value="vivienda-precaria">Vivienda Precaria</option>
+                            <option value="gentrificacion">Gentrificación</option>
+                            <option value="hostilidad-urbana">Hostilidad Urbana</option>
+                            <option value="problemas-ambientales">Problemas Ambientales</option>
+                        </select>
+                        <span class="error-message" id="error-obs-category">Selecciona una categoría.</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="obs-description">Descripción <span style="color:var(--accent);">*</span></label>
+                        <textarea id="obs-description" placeholder="Describe con detalle lo que observaste, contexto, personas involucradas, etc." required aria-required="true"></textarea>
+                        <span class="error-message" id="error-obs-description">La descripción es obligatoria.</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="obs-tags">Etiquetas (separadas por comas)</label>
+                        <input type="text" id="obs-tags" placeholder="ej: #arquitecturahostil, #pobreza, #desigualdad">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="obs-impact">Impacto Percibido <span style="color:var(--accent);">*</span></label>
+                        <select id="obs-impact" required aria-required="true">
+                            <option value="">Selecciona impacto</option>
+                            <option value="alto">Alto</option>
+                            <option value="medio">Medio</option>
+                            <option value="bajo">Bajo</option>
+                        </select>
+                        <span class="error-message" id="error-obs-impact">Selecciona un impacto.</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Ubicación <span style="color:var(--accent);">*</span></label>
+                        <input type="text" id="obs-location-text" placeholder="Ej: Calle Falsa 123, Buenos Aires" required aria-required="true">
+                        <span class="error-message" id="error-obs-location-text">La ubicación es obligatoria.</span>
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <button type="button" class="btn btn-outline" id="getLocationBtn"><i class="fas fa-location-arrow" aria-hidden="true"></i> Usar ubicación actual</button>
+                            <button type="button" class="btn btn-outline" id="selectOnMapBtn"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Seleccionar en mapa</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="obs-media">Medios (foto, video o audio)</label>
+                        <div class="media-upload">
+                            <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                            <p>Arrastra y suelta archivos aquí o haz clic para seleccionar</p>
+                            <small>Máximo 3 archivos (jpg, png, mp4, mp3)</small>
+                            <input type="file" id="obs-media" multiple accept="image/*,video/*,audio/*" aria-label="Subir archivos multimedia">
+                        </div>
+                        <span class="error-message" id="error-obs-media">Máximo 3 archivos permitidos.</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="obs-anonymous" aria-label="Reportar de forma anónima">
+                            <label for="obs-anonymous">Reportar de forma anónima</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group full-width" style="text-align: right;">
+                        <button type="submit" class="btn btn-accent"><i class="fas fa-paper-plane" aria-hidden="true"></i> Publicar Observación</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+        
+        <section class="resources-section" id="recursos">
+            <h2>Recursos Sociológicos</h2>
+            <p>Amplía tu comprensión de los fenómenos sociales con nuestros recursos educativos</p>
+            
+            <div class="resources-grid">
+                <div class="resource-card">
+                    <h4>¿Qué es la exclusión social?</h4>
+                    <p>Concepto, dimensiones y manifestaciones en el espacio urbano contemporáneo.</p>
+                    <a href="#" style="color: var(--secondary); font-weight: 500;">Leer más <span aria-hidden="true">→</span></a>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>Guía de arquitectura hostil</h4>
+                    <p>Identifica elementos de diseño urbano que excluyen a poblaciones vulnerables.</p>
+                    <a href="#" style="color: var(--secondary); font-weight: 500;">Leer más <span aria-hidden="true">→</span></a>
+                </div>
+                
+                <div class="resource-card">
+                    <h4>Economía informal en América Latina</h4>
+                    <p>Análisis de las estrategias de supervivencia en contextos de precariedad laboral.</p>
+                    <a href="#" style="color: var(--secondary); font-weight: 500;">Leer más <span aria-hidden="true">→</span></a>
+                </div>
+            </div>
+        </section>
+        
+        <section style="text-align: center; margin-bottom: 3rem;" id="proyectos">
+            <h2 style="margin-bottom: 1.5rem;">Socios Institucionales</h2>
+            <div class="partners">
+                <div class="partner-logo">CONICET</div>
+                <div class="partner-logo">UBA</div>
+                <div class="partner-logo">UNAM</div>
+                <div class="partner-logo">FLACSO</div>
+                <div class="partner-logo">Gob CDMX</div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <div class="footer-container">
+            <div class="footer-col">
+                <h3>SociObserva</h3>
+                <p>Plataforma de observación ciudadana con perspectiva sociológica para documentar y analizar fenómenos sociales en entornos urbanos y rurales.</p>
+                <div class="social-links">
+                    <a href="#" aria-label="Visítanos en Facebook"><i class="fab fa-facebook-f" aria-hidden="true"></i></a>
+                    <a href="#" aria-label="Visítanos en Twitter"><i class="fab fa-twitter" aria-hidden="true"></i></a>
+                    <a href="#" aria-label="Visítanos en Instagram"><i class="fab fa-instagram" aria-hidden="true"></i></a>
+                    <a href="#" aria-label="Visítanos en YouTube"><i class="fab fa-youtube" aria-hidden="true"></i></a>
+                </div>
+            </div>
+            
+            <div class="footer-col">
+                <h3>Enlaces Rápidos</h3>
+                <ul class="footer-links">
+                    <li><a href="#mapa">Mapa de Observaciones</a></li>
+                    <li><a href="#reportForm">Reportar Observación</a></li>
+                    <li><a href="#recursos">Recursos Educativos</a></li>
+                    <li><a href="#proyectos">Proyectos Colaborativos</a></li>
+                    <li><a href="#dashboard">Dashboard de Datos</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-col">
+                <h3>Categorías</h3>
+                <ul class="footer-links">
+                    <li><a href="#">Exclusión Social</a></li>
+                    <li><a href="#">Discriminación de Género</a></li>
+                    <li><a href="#">Trabajo Informal</a></li>
+                    <li><a href="#">Vivienda Precaria</a></li>
+                    <li><a href="#">Hostilidad Urbana</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-col">
+                <h3>Contacto</h3>
+                <ul class="footer-links">
+                    <li><i class="fas fa-envelope" aria-hidden="true"></i> contacto@sociobserva.org</li>
+                    <li><i class="fas fa-phone" aria-hidden="true"></i> +54 11 2345-6789</li>
+                    <li><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Buenos Aires, Argentina</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="copyright">
+            <p>&copy; 2023 SociObserva. Todos los derechos reservados. | Diseñado con <i class="fas fa-heart" style="color: var(--accent);" aria-hidden="true"></i> para una ciudadanía crítica</p>
+        </div>
+    </footer>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="script.js"></script>
 </body>
 </html>
