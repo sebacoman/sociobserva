@@ -1,4 +1,66 @@
-// ... (código existente de mapa y gráficos) ...
+
+// Inicializar mapa
+const map = L.map('map').setView([-34.6037, -58.3816], 12);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Marcadores de ejemplo (Estos se eliminarán y se cargarán desde Firestore)
+const markers = [
+    {lat: -34.6037, lng: -58.3816, title: "Bancos con apoyabrazos", category: "Hostilidad Urbana"},
+    {lat: -34.6100, lng: -58.4000, title: "Vendedores ambulantes", category: "Trabajo Informal"},
+    {lat: -34.5900, lng: -58.3700, title: "Publicidad sexista", category: "Discriminación de Género"},
+    {lat: -34.5950, lng: -58.3900, title: "Personas en situación de calle", category: "Exclusión Social"},
+    {lat: -34.6000, lng: -58.4200, title: "Basura en espacio público", category: "Problemas Ambientales"}
+];
+
+const categoryColors = {
+    "Hostilidad Urbana": "#e74c3c",
+    "Trabajo Informal": "#3498db",
+    "Discriminación de Género": "#9b59b6",
+    "Exclusión Social": "#f39c12",
+    "Vivienda Precaria": "#1abc9c",
+    "Problemas Ambientales": "#2ecc71",
+    "Accesibilidad Limitada": "#c0392b",
+    "Participación Comunitaria": "#8e44ad",
+    "Intervenciones Artísticas": "#f1c40f",
+    "Espacios de Ocio": "#2980b9"
+};
+
+// =====================================
+// Inicialización de Chart.js para el gráfico de categorías
+// =====================================
+const ctx = document.getElementById('categoryChart').getContext('2d');
+const categoryChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: Object.keys(categoryColors),
+        datasets: [{
+            data: Object.values(categoryColors).map(() => 0), // Inicialmente todo a 0
+            backgroundColor: Object.values(categoryColors),
+            borderColor: '#fff',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    color: 'var(--text-on-light)'
+                }
+            },
+            title: {
+                display: false,
+                text: 'Observaciones por Categoría'
+            }
+        }
+    }
+});
+
 
 // =====================================
 // Inicialización de Firebase (ya está en index.html, pero se referencia aquí para el contexto)
@@ -6,7 +68,7 @@
 // const firebaseConfig = { ... }; // Esto ya está en index.html
 // firebase.initializeApp(firebaseConfig); // Esto ya está en index.html
 
-// Referencia a Firestore
+// Referencia a Firestore (Asegúrate de que firebase.firestore() esté disponible)
 const db = firebase.firestore();
 
 // =====================================
@@ -40,6 +102,10 @@ reportForm.addEventListener('submit', function(event) {
             errorMessageElement.textContent = ''; // Limpiar mensaje
         }
     }
+
+    // Limpiar errores previos al validar de nuevo
+    document.querySelectorAll('.form-group.error').forEach(el => el.classList.remove('error'));
+    document.querySelectorAll('.error-message').forEach(el => { el.textContent = ''; el.style.display = 'none'; });
 
     // Validar Título
     const obsTitle = document.getElementById('obs-title');
@@ -95,7 +161,7 @@ reportForm.addEventListener('submit', function(event) {
             title: obsTitle.value.trim(),
             category: obsCategory.value,
             description: obsDescription.value.trim(),
-            tags: obsTags.value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+            tags: document.getElementById('obs-tags').value.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
             impact: obsImpact.value,
             locationText: obsLocationText.value.trim(),
             anonymous: document.getElementById('obs-anonymous').checked,
@@ -117,6 +183,8 @@ reportForm.addEventListener('submit', function(event) {
         // **IMPORTANTE:** Para subir archivos, necesitarías Firebase Storage.
         // Esto añade más complejidad y código (manejo de promises, progreso de subida).
         // Por ahora, solo guardaremos los metadatos de la observación.
+        // Puedes añadir un placeholder para la imagen si quieres que se vea algo.
+        observationData.imageUrl = 'https://via.placeholder.com/800x400?text=Imagen+No+Disponible';
 
         db.collection("observaciones").add(observationData)
             .then((docRef) => {
@@ -126,8 +194,8 @@ reportForm.addEventListener('submit', function(event) {
                 document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
                 document.querySelectorAll('.form-group.error').forEach(el => el.classList.remove('error'));
                 
-                // Opcional: recargar los datos en el mapa o la lista de observaciones
-                // fetchAndDisplayObservations(); // Necesitarías una función para esto
+                // Recargar las observaciones para mostrar la nueva
+                fetchAndDisplayObservations(); 
             })
             .catch((error) => {
                 console.error("Error al añadir documento: ", error);
@@ -202,55 +270,54 @@ mediaUploadInput.addEventListener('change', function() {
 // NUEVO: Funciones para cargar observaciones desde Firestore y mostrarlas
 // =====================================
 
-// Puedes llamar a esta función al cargar la página para mostrar las observaciones existentes
-// Opcional: modificar los gráficos con datos reales
 async function fetchAndDisplayObservations() {
     // Vaciar los marcadores actuales del mapa (si los hubiera)
     map.eachLayer(function(layer) {
+        // No eliminar el tile layer base de OpenStreetMap
         if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
             map.removeLayer(layer);
         }
     });
-    // Volver a añadir el tile layer si se eliminó por error
-    if (!map.hasLayer(L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'))) {
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-    }
-
 
     const observationsCollection = db.collection("observaciones");
     const observationGrid = document.querySelector('.observation-grid');
-    observationGrid.innerHTML = ''; // Limpiar las observaciones existentes en el HTML
+    observationGrid.innerHTML = '<p style="text-align: center; color: #777;">Cargando observaciones...</p>'; // Mensaje de carga
 
-    const newMarkers = [];
     const categoryCounts = {}; // Para el gráfico de categorías
 
     try {
         const snapshot = await observationsCollection.orderBy("timestamp", "desc").get();
+        observationGrid.innerHTML = ''; // Limpiar el mensaje de carga
+        
+        if (snapshot.empty) {
+            observationGrid.innerHTML = '<p style="text-align: center; color: #777;">No hay observaciones publicadas aún.</p>';
+            // Resetear el gráfico si no hay datos
+            categoryChart.data.labels = Object.keys(categoryColors);
+            categoryChart.data.datasets[0].data = Object.values(categoryColors).map(() => 0);
+            categoryChart.update();
+            return; // Salir de la función si no hay observaciones
+        }
+
         snapshot.forEach(doc => {
             const data = doc.data();
             
             // Añadir al mapa
-            if (data.latitude && data.longitude) {
-                L.marker([data.latitude, data.longitude], {
-                    title: data.title
-                })
-                .bindPopup(`<b>${data.title}</b><br>${data.category}<br>${data.description}`)
-                .addTo(map);
-
-                 // Marcador de calor para el mapa (usando los colores predefinidos o uno por defecto)
+            if (data.latitude !== null && data.longitude !== null) {
                 const color = categoryColors[data.category] || '#7f8c8d'; // Gris por defecto
+                
                 L.circleMarker([data.latitude, data.longitude], {
-                    radius: 12,
+                    radius: 8, // Un poco más pequeño para el marcador de calor
                     fillColor: color,
                     color: "#000",
                     weight: 1,
                     opacity: 1,
                     fillOpacity: 0.8
-                }).addTo(map);
+                })
+                .bindPopup(`<b>${data.title}</b><br>${data.category}<br>${data.description}<br><small>(${data.locationText})</small>`)
+                .addTo(map);
 
-                newMarkers.push({lat: data.latitude, lng: data.longitude, title: data.title, category: data.category});
+                 // Opcional: También podrías añadir un marcador de icono si lo prefieres
+                 // L.marker([data.latitude, data.longitude]).addTo(map).bindPopup(`<b>${data.title}</b>`);
             }
 
             // Añadir a la cuadrícula de observaciones
@@ -258,15 +325,15 @@ async function fetchAndDisplayObservations() {
             observationCard.classList.add('observation-card');
             
             const impactClass = data.impact ? `impact-${data.impact}` : ''; // high, medium, low
-            const impactIcon = data.impact === 'alto' ? '<i class="fas fa-fire" aria-hidden="true"></i> Alto impacto' :
-                               data.impact === 'medio' ? '<i class="fas fa-fire" aria-hidden="true"></i> Medio impacto' :
-                               data.impact === 'bajo' ? '<i class="fas fa-fire" aria-hidden="true"></i> Bajo impacto' : '';
+            const impactIcon = data.impact === 'alto' ? '<i class="fas fa-exclamation-triangle" aria-hidden="true" style="color: #e74c3c;"></i> Alto impacto' :
+                               data.impact === 'medio' ? '<i class="fas fa-exclamation-circle" aria-hidden="true" style="color: #f39c12;"></i> Medio impacto' :
+                               data.impact === 'bajo' ? '<i class="fas fa-check-circle" aria-hidden="true" style="color: #27ae60;"></i> Bajo impacto' : '';
 
-            // Fecha formateada
-            const date = data.timestamp ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('es-ES') : 'Fecha desconocida';
+            // Fecha formateada (manejar el caso de que timestamp sea nulo o indefinido)
+            const date = data.timestamp && data.timestamp.seconds ? new Date(data.timestamp.seconds * 1000).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Fecha desconocida';
 
             observationCard.innerHTML = `
-                <div class="observation-image" style="background-image: url('https://via.placeholder.com/800x400?text=Imagen+No+Disponible');" alt="Imagen de la observación."></div>
+                <div class="observation-image" style="background-image: url('${data.imageUrl || 'https://via.placeholder.com/800x400?text=Imagen+No+Disponible'}');" alt="Imagen de la observación."></div>
                 <div class="observation-content">
                     <span class="observation-category" style="background-color: ${categoryColors[data.category] || '#7f8c8d'};">${data.category}</span>
                     <h3 class="observation-title">${data.title}</h3>
@@ -285,7 +352,7 @@ async function fetchAndDisplayObservations() {
         });
 
         // Actualizar el gráfico de categorías con los datos reales
-        const chartLabels = Object.keys(categoryColors); // Usar las claves de categoryColors para los labels
+        const chartLabels = Object.keys(categoryColors); 
         const chartData = chartLabels.map(label => categoryCounts[label] || 0);
 
         categoryChart.data.labels = chartLabels;
@@ -294,9 +361,41 @@ async function fetchAndDisplayObservations() {
 
     } catch (error) {
         console.error("Error al obtener observaciones: ", error);
+        observationGrid.innerHTML = '<p style="text-align: center; color: #e74c3c;">Error al cargar las observaciones. Por favor, inténtalo de nuevo.</p>';
         alert("Error al cargar las observaciones existentes.");
     }
 }
 
 // Llama a la función al cargar la página para mostrar las observaciones existentes
-document.addEventListener('DOMContentLoaded', fetchAndDisplayObservations);
+document.addEventListener('DOMContentLoaded', function() {
+    fetchAndDisplayObservations();
+    // También configurar la hamburguesa del menú
+    const burger = document.querySelector('.burger');
+    const nav = document.querySelector('.nav-links');
+    const navLinks = document.querySelectorAll('.nav-links li');
+
+    burger.addEventListener('click', () => {
+        // Toggle Nav
+        nav.classList.toggle('nav-active');
+
+        // Animate Links
+        navLinks.forEach((link, index) => {
+            if (link.style.animation) {
+                link.style.animation = '';
+            } else {
+                link.style.animation = `navLinkFade 0.5s ease forwards ${index / 7 + 0.3}s`;
+            }
+        });
+        // Burger Animation
+        burger.classList.toggle('toggle');
+    });
+
+    // Cerrar menú al hacer clic en un enlace (para móviles)
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            nav.classList.remove('nav-active');
+            burger.classList.remove('toggle');
+            navLinks.forEach((l) => { l.style.animation = ''; }); // Reset animation
+        });
+    });
+});
