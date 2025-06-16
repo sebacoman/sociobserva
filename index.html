@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SociObserva</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDTLVsHoYspaZ0wR4RPZaqRC7tU1FouO7k",
+      authDomain: "sociobserva.firebaseapp.com",
+      projectId: "sociobserva",
+      storageBucket: "sociobserva.firebasestorage.app",
+      messagingSenderId: "798978737465",
+      appId: "1:798978737465:web:d5cbd9a6a055de74d014e8"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <h1>SociObserva</h1>
+  <p>Reportá tu observación sociológica:</p>
+
+  <form id="reportForm">
+    <label>Título:<br><input type="text" id="obs-title" required></label><br><br>
+    <label>Categoría:<br>
+      <select id="obs-category" required>
+        <option value="">Seleccioná</option>
+        <option value="exclusion-social">Exclusión Social</option>
+        <option value="discriminacion-genero">Discriminación de Género</option>
+        <option value="trabajo-informal">Trabajo Informal</option>
+        <option value="hostilidad-urbana">Hostilidad Urbana</option>
+      </select>
+    </label><br><br>
+    <label>Descripción:<br><textarea id="obs-description" required></textarea></label><br><br>
+    <label>Ubicación (texto o coordenadas):<br><input type="text" id="obs-location" required></label><br><br>
+    <button type="submit">Publicar</button>
+  </form>
+
+  <h2>Observaciones:</h2>
+  <ul id="obs-list"></ul>
+
+  <script src="script.js"></script>
+</body>
+</html>
